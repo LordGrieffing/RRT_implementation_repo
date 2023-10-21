@@ -68,14 +68,23 @@ def propogate(graph, closestNode, sample):
     slope = (prevNode[0] - sample[0]) / (prevNode[1] - sample[1])
     y_intercept = sample[1] - (slope * sample[0])
 
-    # Use formula to find two possible points
+    # Use formula to find desired point
     if prevNode[0] < sample[0]:
         x_true = prevNode[0] + (stepSize / math.sqrt(1 + slope**2))
         y_true = prevNode[1] + slope * (x_true - prevNode[0]) 
 
     elif prevNode[0] > sample[0]:
         x_true = prevNode[0] - (stepSize / math.sqrt(1 + slope**2))
-        y_true = prevNode[1] + slope * (x_true - prevNode[0]) 
+        y_true = prevNode[1] + slope * (x_true - prevNode[0])
+
+    elif prevNode[0] == sample[0]:
+        if prevNode[1] > sample[1]:
+            x_true = prevNode[0]
+            y_true = prevNode[1] - stepSize
+        else:
+            x_true = prevNode[0]
+            y_true = prevNode[1] + stepSize
+
 
     # Return the point
     return [x_true, y_true]
@@ -227,6 +236,8 @@ def rrt_algorithm(img, start, end, tree):
 
         # Find the closest node to the sample
         closestNode = findClosest(tree, sample)
+        if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
+            sample = generateSample()
 
         # Generate a new node
         newNodeID = len(tree) + 1
@@ -236,7 +247,6 @@ def rrt_algorithm(img, start, end, tree):
 
             newNodeCoords = propogate(tree, closestNode, sample)
             color = img[int(newNodeCoords[0]), int(newNodeCoords[1])]
-            time.sleep(1)
             if not np.all(color == 0):
                 validNode = True
             
@@ -251,10 +261,12 @@ def rrt_algorithm(img, start, end, tree):
                         validLinePoint = False
 
                     i = i + 1
-                '''
-
+                ''' 
+             
             else:
                 sample = generateSample()
+                if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
+                    sample = generateSample()
 
 
 
