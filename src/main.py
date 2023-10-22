@@ -11,20 +11,20 @@ from scipy.optimize import fsolve
 import time
 
 # -- import an image and convert it to a binary image
-img = cv2.imread('maze3.png')
+img = cv2.imread('maze1.png')
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
 
 # -- initialize the start and end points
-start = [10, 10]
-end = [100, 100]
+start = [60, 10]
+end = [200, 350]
 
 # -- initialize the tree
 tree = nx.Graph()
 
 # -- Define step size
-stepSize = 10
+stepSize = 20
 
 # -- This method generates a random sample in the space
 def generateSample():
@@ -106,8 +106,8 @@ def lineCheck(point, slope, y_intercept):
 def between(range_x, range_y, num):
 
     
-    if num[0] >= range_x[0] and num[0] <= range_x[1]:
-        if num[1] >= range_y[0] and num[1] <= range_y[1]:
+    if num[1] >= range_x[0] and num[1] <= range_x[1]:
+        if num[0] >= range_y[0] and num[0] <= range_y[1]:
             return True
         
     else:
