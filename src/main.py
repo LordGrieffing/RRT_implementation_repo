@@ -11,20 +11,20 @@ from scipy.optimize import fsolve
 import time
 
 # -- import an image and convert it to a binary image
-img = cv2.imread('maze0.png')
+img = cv2.imread('maze3.png')
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
 
 # -- initialize the start and end points
 start = [10, 10]
-end = [300, 300]
+end = [100, 100]
 
 # -- initialize the tree
 tree = nx.Graph()
 
 # -- Define step size
-stepSize = 5
+stepSize = 10
 
 # -- This method generates a random sample in the space
 def generateSample():
@@ -64,8 +64,19 @@ def propogate(graph, closestNode, sample):
     if math.dist(prevNode, sample) <= stepSize:
         return sample
     
+    # Check if the X value of the previous node and the sample are the same to avoid divide by zero error
+    if prevNode[0] == sample[0]:
+        if prevNode[1] > sample[1]:
+            x_true = prevNode[0]
+            y_true = prevNode[1] - stepSize
+        else:
+            x_true = prevNode[0]
+            y_true = prevNode[1] + stepSize
+
+        return [x_true, y_true]
+    
     # Find information needed for the line equation
-    slope = (prevNode[0] - sample[0]) / (prevNode[1] - sample[1])
+    slope = (prevNode[1] - sample[1]) / (prevNode[0] - sample[0])
     y_intercept = sample[1] - (slope * sample[0])
 
     # Use formula to find desired point
@@ -76,14 +87,6 @@ def propogate(graph, closestNode, sample):
     elif prevNode[0] > sample[0]:
         x_true = prevNode[0] - (stepSize / math.sqrt(1 + slope**2))
         y_true = prevNode[1] + slope * (x_true - prevNode[0])
-
-    elif prevNode[0] == sample[0]:
-        if prevNode[1] > sample[1]:
-            x_true = prevNode[0]
-            y_true = prevNode[1] - stepSize
-        else:
-            x_true = prevNode[0]
-            y_true = prevNode[1] + stepSize
 
 
     # Return the point
@@ -100,13 +103,11 @@ def lineCheck(point, slope, y_intercept):
         return False
 
 # -- Checks if a number is between a range of numbers
-def between(range, num):
+def between(range_x, range_y, num):
 
-    range_x = int(range[0])
-    range_y = int(range[1])
     
-    if range_x <= num[0]:
-        if range_y >= num[1]:
+    if num[0] >= range_x[0] and num[0] <= range_x[1]:
+        if num[1] >= range_y[0] and num[1] <= range_y[1]:
             return True
         
     else:
@@ -221,6 +222,15 @@ def rrt_algorithm(img, start, end, tree):
     goalzone_x = [(end[0] - 10), (end[0] + 10)]
     goalzone_y = [(end[1] - 10), (end[1] + 10)]
 
+    #Draw the goal zone
+    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+
+    
+        
+
     # Initizalize some variables we will be using
     notAtGoal = True
     goalNode = 0
@@ -233,6 +243,7 @@ def rrt_algorithm(img, start, end, tree):
         
         # Generate a sample
         sample = generateSample()
+        #img[sample[0], sample[1]] = [0, 0, 255]
 
         # Find the closest node to the sample
         closestNode = findClosest(tree, sample)
@@ -290,9 +301,13 @@ def rrt_algorithm(img, start, end, tree):
 
 
         # Check if newest node is in goal zone
-        if between(goalzone_x, [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']] ) and between(goalzone_y, [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']]):
+        if between(goalzone_x, goalzone_y,  [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']] ):
             notAtGoal = False
             goalNode = newNodeID
+            print("========================")
+            print("goal node ID: ", goalNode)
+            print("goal node coords: ", [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']])
+            print("========================")
 
 
     # display map
@@ -300,19 +315,7 @@ def rrt_algorithm(img, start, end, tree):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    # Find path from start to goal
-    currentNode = goalNode
-    while notAtRoot:
-        path.append(currentNode)
-
-        parentNode = tree.nodes[currentNode]['parent']
-
-        if parentNode == 0:
-            notAtRoot = False
-
-        currentNode = parentNode
-
-    return path
+    return goalNode
 
 
 
@@ -355,7 +358,67 @@ def rrt_algorithm(img, start, end, tree):
 
 
 # -- run RRT algorithm
-rrt_algorithm(img, start, end, tree)
+goalNode = rrt_algorithm(img, start, end, tree)
+
+
+# attempt to display best path
+img_two = cv2.imread('maze3.png')
+notRoot = True
+bestpath = []
+bestpath.append(goalNode)
+current_node = goalNode
+
+while notRoot:
+    img[tree.nodes[current_node]['x'], tree.nodes[current_node]['y']] = [0, 0, 255]
+    #img[tree.nodes[current_node]['y'], tree.nodes[current_node]['x']] = [0, 0, 255]
+
+    parent = tree.nodes[current_node]['parent']
+
+    if parent != 0:
+        cv2.line(img, (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']), (0, 0, 255), 1)
+        current_node = parent
+        bestpath.append(parent)
+    else:
+        notRoot = False
+
+'''
+for i in range(len(best_path) - 1):
+    current_x = tree.nodes[i + 1]['x']
+    current_y = tree.nodes[i + 1]['y']
+    
+    next_x = tree.nodes[i + 2]['x']
+    next_y = tree.nodes[i + 2]['y']
+
+    img_two[int(current_y), int(current_x)] = [0,0,255]
+    #cv2.line(img_two, (int(current_x), int(current_y)), (int(next_x), int(next_y)), (0, 0, 255), 1)
+    cv2.line(img, (int(next_x), int(next_y)), (int(current_x), int(current_y)), (0, 0, 255), 1)
+
+'''
+
+
+# Draw the goal in the new image as well
+#cv2.line(img_two, ((end[0] - 10), (end[1] + 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+#cv2.line(img_two, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), (255, 0, 0), 1)
+#cv2.line(img_two, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), (255, 0, 0), 1)
+#cv2.line(img_two, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+
+# Display the image
+cv2.imshow('My Image',img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+
+
+
+
 #test_line_function(start, end, img)
 
 # -- show the result
