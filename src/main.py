@@ -24,7 +24,7 @@ end = [200, 350]
 tree = nx.Graph()
 
 # -- Define step size
-stepSize = 20
+stepSize = 10
 
 # -- This method generates a random sample in the space
 def generateSample():
@@ -114,71 +114,38 @@ def between(range_x, range_y, num):
         return False
 
 # -- This method uses Bresenham's line Algorithm to draw an edge
-def drawTheEdge(start, end):
-    
-    # Initialize variables we will be using
-    x_next = start[0]
-    y_next = start[1]
-    delta_x = end[0] - start[0]
-    delta_y = end[1] - start[1]
-    pk = (2 * delta_y) - delta_x
-    line = []
-    endInt = [int(end[0]), int(end[1])]
+# -- I got this from ChatGPT
+def bresenham_line(x1, y1, x2, y2):
+    # Setup initial conditions
+    points = []
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    x, y = x1, y1
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
 
-    #print(x_next)
-    #print(y_next)
-    #print(endInt)
-    # Generate points in the line
-    while (x_next != endInt[0]) or (y_next != endInt[1]):
+    # Decision variables for determining the next point
+    if dx > dy:
+        err = dx / 2
+        while x != x2:
+            points.append((x, y))
+            err -= dy
+            if err < 0:
+                y += sy
+                err += dx
+            x += sx
+    else:
+        err = dy / 2
+        while y != y2:
+            points.append((x, y))
+            err -= dx
+            if err < 0:
+                x += sx
+                err += dy
+            y += sy
 
-        if x_next == endInt[0]:
-        
-            if y_next < endInt[1]:
-
-                y_next = y_next + 1
-
-            else:
-                y_next = y_next - 1
-
-        elif y_next == endInt[1]:
-        
-            if x_next < endInt[0]:
-
-                x_next = x_next + 1
-
-            else:
-                x_next = x_next - 1
-
-        else:
-            if pk > 0:
-            
-                pkNext = pk + (2 * delta_y) - (2 * delta_x)
-
-                if x_next > endInt[0]:
-                    x_next = x_next - 1
-                else:
-                    x_next = x_next + 1
-
-                if y_next > endInt[1]:
-                    y_next = y_next - 1
-                else:
-                    y_next = y_next + 1
-
-            
-            if pk < 0:
-                pkNext = pk + (2 * delta_y)
-
-                if x_next > end[0]:
-                    x_next = x_next - 1
-                else:
-                    x_next = x_next + 1
-                
-        
-
-
-        line.append([x_next, y_next])
-
-    return line
+    points.append((x, y))  # Add the final point
+    return points
 
 
 
@@ -216,7 +183,7 @@ def rrt_algorithm(img, start, end, tree):
     tree.nodes[1]['x'] = start[0]
     tree.nodes[1]['y'] = start[1]
     tree.nodes[1]['parent'] = 0
-    img[start[0], start[1]] = [0,0,0]
+    img[start[0], start[1]] = [0,0,255]
 
     # Inflate goal zone
     goalzone_x = [(end[0] - 10), (end[0] + 10)]
@@ -227,6 +194,10 @@ def rrt_algorithm(img, start, end, tree):
     cv2.line(img, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), (255, 0, 0), 1)
     cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), (255, 0, 0), 1)
     cv2.line(img, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+
+    cv2.imshow('My Image',img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     
         
@@ -254,25 +225,30 @@ def rrt_algorithm(img, start, end, tree):
         newNodeID = len(tree) + 1
         validNode = False
         
-        while not validNode:
+        while not validNode: 
 
             newNodeCoords = propogate(tree, closestNode, sample)
             color = img[int(newNodeCoords[0]), int(newNodeCoords[1])]
             if not np.all(color == 0):
-                validNode = True
-            
-                '''
-                line = drawTheEdge([tree.nodes[closestNode]['x'], tree.nodes[closestNode]['y']] , newNodeCoords)
-                validLinePoint = True
-                i = 0
-                while validLinePoint and i == len(line) - 1:
-                    color = img[line[i]]
-                    if np.any(color == 0):
-                        validNode = False
-                        validLinePoint = False
+                line = []
+                line = bresenham_line(int(newNodeCoords[0]), int(newNodeCoords[1]), tree.nodes[closestNode]['x'], tree.nodes[closestNode]['y'])
+                lineValid = True
 
-                    i = i + 1
-                ''' 
+                for i in range(len(line)):
+                    if np.all(img[line[i][0], line[i][1]] == 0):
+                        lineValid = False
+                        #print("Invalid line", line[i][0], " ", line[i][1])
+                        break
+                
+                if lineValid:
+                    validNode = True
+
+                else: 
+                    sample = generateSample()
+                    if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
+                        sample = generateSample() 
+            
+             
              
             else:
                 sample = generateSample()
