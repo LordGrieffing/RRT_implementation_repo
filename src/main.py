@@ -14,7 +14,7 @@ import time
 img = cv2.imread('maze1.png')
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
-
+                                                               
 
 # -- initialize the start and end points
 start = [60, 10]
@@ -24,7 +24,7 @@ end = [200, 350]
 tree = nx.Graph()
 
 # -- Define step size
-stepSize = 10
+stepSize = 2
 
 # -- This method generates a random sample in the space
 def generateSample():
@@ -271,9 +271,9 @@ def rrt_algorithm(img, start, end, tree):
         
         cv2.line(img, (int(newNodeCoords[1]), int(newNodeCoords[0])), (tree.nodes[closestNode]['y'], tree.nodes[closestNode]['x']), (255,0,0), 1)
 
-        cv2.imshow('My Image',img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow('My Image',img)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
 
         # Check if newest node is in goal zone

@@ -10,11 +10,6 @@ import math
 from scipy.optimize import fsolve
 import time
 
-# -- set up colors
-COLOR_RED = (0,0,255)
-COLOR_BLACK = (0,0,0)
-COLOR_WHITE = (255, 255, 255)
-COLOR_BLUE = (255, 0, 0)
 
 # -- This method generates a random sample in the space
 def generateSample():
@@ -81,16 +76,6 @@ def propogate(graph, closestNode, sample):
 
     # Return the point
     return [x_true, y_true]
-    
-# -- Checks whether a point is on a line or not
-def lineCheck(point, slope, y_intercept):
-    
-    test_y = (slope * point[0]) + y_intercept
-
-    if int(test_y) == int(point[1]):
-        return True
-    else:
-        return False
 
 # -- Checks if a number is between a range of numbers
 def between(range_x, range_y, num):
@@ -102,7 +87,7 @@ def between(range_x, range_y, num):
         
     else:
         return False
-
+    
 # -- This method uses Bresenham's line Algorithm to draw an edge
 # -- I got this from ChatGPT
 def bresenham_line(x1, y1, x2, y2):
@@ -137,21 +122,35 @@ def bresenham_line(x1, y1, x2, y2):
     points.append((x, y))  # Add the final point
     return points
 
+# -- shortest neighbor check
+def shortestNeighbor(currentNode, neighborhood, tree, img):
+    
+    validPathPossible = False
+    bestNeighbor = 0
+    shortestTrip = 10000
 
-def test_line_function(start, end, img):
-    
-    img[start[0], start[1]] = [0, 0, 255]
-    img[end[0], end[1]] = [0, 0, 255]
-    
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
-    cv2.line(img, (start[1], start[0]), (end[1], end[0]), (255,0,0), 1)
+    for i in range(len(neighborhood)):
 
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        line = []
+        line = bresenham_line(int(currentNode[0]), int(currentNode[1]), tree.nodes[neighborhood[i]]['x'], tree.nodes[neighborhood[i]]['y'])
+        lineValid = True
+
+        for j in range(len(line)):
+            if np.all(img[line[j][0], line[j][1]] == 0):
+                lineValid = False
+                break
+
+        if lineValid:
+            currentDist = math.dist([tree.nodes[neighborhood[i]]['x'], tree.nodes[neighborhood[i]]['y']], [int(currentNode[0]), int(currentNode[1])])
+            currentShortPath = currentDist + tree.nodes[neighborhood[i]]['path_to_start']
+        
+            if currentShortPath <= shortestTrip:
+                shortestTrip = currentShortPath
+                bestNeighbor = neighborhood[i]
+                validPathPossible = True 
+
+    return bestNeighbor, validPathPossible
+
 
 
 # -- This is the algroithm, use it to search for a motion plan
@@ -162,6 +161,7 @@ def rrt_algorithm(img, start, end, tree):
     tree.nodes[1]['x'] = start[0]
     tree.nodes[1]['y'] = start[1]
     tree.nodes[1]['parent'] = 0
+    tree.nodes[1]['path_to_start'] = 0
     img[start[0], start[1]] = [0,0,255]
 
     # Inflate goal zone
@@ -169,52 +169,56 @@ def rrt_algorithm(img, start, end, tree):
     goalzone_y = [(end[1] - 10), (end[1] + 10)]
 
     #Draw the goal zone
-    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] + 10), (end[1] + 10)), COLOR_BLUE, 1)
-    cv2.line(img, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), COLOR_BLUE, 1)
-    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), COLOR_BLUE, 1)
-    cv2.line(img, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), COLOR_BLUE, 1)
+    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), (255, 0, 0), 1)
+    cv2.line(img, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
 
-    # cv2.imshow('My Image',img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    cv2.imshow('My Image',img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
     # Initizalize some variables we will be using
     notAtGoal = True
     goalNode = 0
     notAtRoot = True
     path = []
-    #line = []
+    bestNeighbor = 0
 
     # Generate new nodes until one is in the goalzone
     while notAtGoal:
         
         # Generate a sample
         sample = generateSample()
-        #img[sample[0], sample[1]] = [0, 0, 255]
 
         # Find the closest node to the sample
         closestNode = findClosest(tree, sample)
+        # If the sample happens to be the same point as the node generate a new node.
+        # Yes the possiblilty exist that the node generated might still over lap with the point, but I am willing to live with those odds
         if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
             sample = generateSample()
 
         # Generate a new node
         newNodeID = len(tree) + 1
         validNode = False
-        
-        while not validNode: 
 
+        while not validNode:
             newNodeCoords = propogate(tree, closestNode, sample)
             color = img[int(newNodeCoords[0]), int(newNodeCoords[1])]
-            if not np.all(color == 0):
-                line = []
-                line = bresenham_line(int(newNodeCoords[0]), int(newNodeCoords[1]), tree.nodes[closestNode]['x'], tree.nodes[closestNode]['y'])
-                lineValid = True
 
-                for i in range(len(line)):
-                    if np.all(img[line[i][0], line[i][1]] == 0):
-                        lineValid = False
-                        #print("Invalid line", line[i][0], " ", line[i][1])
-                        break
+            if not np.all(color == 0):
+                
+                # Initialize neighborhood
+                neighborhood = []
+
+                # Build the node's neighborhood
+                for i in range(len(tree.nodes)):
+                    tempDistance = math.dist([tree.nodes[i + 1]['x'], tree.nodes[i + 1]['y']], [int(newNodeCoords[0]), int(newNodeCoords[1])])
+                    if tempDistance <= neighbors:
+                        neighborhood.append(i + 1)
+
+                # Check which neighbor gives the shortest path to the start
+                bestNeighbor, lineValid = shortestNeighbor(newNodeCoords, neighborhood, tree, img)
                 
                 if lineValid:
                     validNode = True
@@ -231,21 +235,14 @@ def rrt_algorithm(img, start, end, tree):
                 if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
                     sample = generateSample()
 
-
+        #print("we made something valid")
         # Add new node to graph
         tree.add_node(newNodeID)
         tree.nodes[newNodeID]['x'] = int(newNodeCoords[0])
         tree.nodes[newNodeID]['y'] = int(newNodeCoords[1])
-        tree.nodes[newNodeID]['parent'] = closestNode
-        tree.add_edge(closestNode, newNodeID)
-
-
-        # Draw the node and the new edge
-        img[int(newNodeCoords[0]), int(newNodeCoords[1])] = [0, 0, 255]        
-        cv2.line(img, (int(newNodeCoords[1]), int(newNodeCoords[0])), 
-                 (tree.nodes[closestNode]['y'], tree.nodes[closestNode]['x']), 
-                 COLOR_BLUE, 1)
-
+        tree.nodes[newNodeID]['parent'] = bestNeighbor
+        tree.nodes[newNodeID]['path_to_start'] = tree.nodes[bestNeighbor]['path_to_start'] + math.dist([tree.nodes[bestNeighbor]['x'], tree.nodes[bestNeighbor]['y']], [int(newNodeCoords[0]), int(newNodeCoords[1])])
+        #tree.add_edge(closestNode, newNodeID)
 
         # Check if newest node is in goal zone
         if between(goalzone_x, goalzone_y,  [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']] ):
@@ -256,24 +253,17 @@ def rrt_algorithm(img, start, end, tree):
             print("goal node coords: ", [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']])
             print("========================")
 
-
-    # display map
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-    return goalNode
+    return tree, goalNode
 
 
-if __name__ == '__main__':
-    # -- set input parameters
-    filename = 'maze1.png'
-    stepSize = 15 # Define step size
 
+
+if __name__ == "__main__":
     # -- import an image and convert it to a binary image
     img = cv2.imread('maze1.png')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+                                                               
 
     # -- initialize the start and end points
     start = [60, 10]
@@ -282,10 +272,33 @@ if __name__ == '__main__':
     # -- initialize the tree
     tree = nx.Graph()
 
-    # -- run RRT algorithm
-    goalNode = rrt_algorithm(img, start, end, tree)
+    # -- Define step size
+    stepSize = 15
 
-    # attempt to display best path
+    # -- Define neighborhood Length
+    neighbors = 30
+
+    # -- Run algorithm
+    tree, goalNode = rrt_algorithm(img, start, end, tree)
+
+    # -- Draw graph
+    for i in range(len(tree.nodes)):
+        node = i + 1
+        # Draw node
+        img[tree.nodes[node]['x'], tree.nodes[node]['y']] = [0, 0, 255]
+
+        # Draw line
+        if tree.nodes[node]['parent'] == 0:
+            pass
+        else:
+            parent = tree.nodes[node]['parent']
+            cv2.line(img, (tree.nodes[node]['y'], tree.nodes[node]['x']), (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (255, 0, 0), 1)
+
+    cv2.imshow('My Image',img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    # Attempt to display best path
     notRoot = True
     bestpath = []
     bestpath.append(goalNode)
@@ -293,20 +306,17 @@ if __name__ == '__main__':
 
     while notRoot:
         img[tree.nodes[current_node]['x'], tree.nodes[current_node]['y']] = [0, 0, 255]
+        #img[tree.nodes[current_node]['y'], tree.nodes[current_node]['x']] = [0, 0, 255]
 
         parent = tree.nodes[current_node]['parent']
 
         if parent != 0:
-            # draw a straight line from parent to current node
-            cv2.line(img, (tree.nodes[parent]['y'], tree.nodes[parent]['x']),
-                    (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']),
-                    COLOR_RED, 3)
+            cv2.line(img, (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']), (0, 0, 255), 5)
             current_node = parent
             bestpath.append(parent)
         else:
             notRoot = False
 
-    # Display the image
     cv2.imshow('My Image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
