@@ -158,9 +158,20 @@ def neighborhoodAdjustment(tree, currentNode, neighborhood):
         temp_path_to_start = tempdist + tree.nodes[currentNode]['path_to_start']
 
         if temp_path_to_start < tree.nodes[neighborhood[i]]['path_to_start']:
-            #print("current parent: ", tree.nodes[neighborhood[i]]['parent'])
-            tree.nodes[neighborhood[i]]['parent'] = currentNode
-            tree.nodes[neighborhood[i]]['path_to_start'] = temp_path_to_start
+            line = []
+            line = bresenham_line(tree.nodes[currentNode]['x'], tree.nodes[currentNode]['y'], tree.nodes[neighborhood[i]]['x'], tree.nodes[neighborhood[i]]['y'])
+            lineValid = True
+
+            for j in range(len(line)):
+                if np.all(img[line[j][0], line[j][1]] == 0):
+                    #print("bad line")
+                    lineValid = False
+                    break
+
+            if lineValid:
+                #print("current parent: ", tree.nodes[neighborhood[i]]['parent'])
+                tree.nodes[neighborhood[i]]['parent'] = currentNode
+                tree.nodes[neighborhood[i]]['path_to_start'] = temp_path_to_start
 
 
 # -- This is the algroithm, use it to search for a motion plan
