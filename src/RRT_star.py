@@ -151,6 +151,16 @@ def shortestNeighbor(currentNode, neighborhood, tree, img):
 
     return bestNeighbor, validPathPossible
 
+def neighborhoodAdjustment(tree, currentNode, neighborhood):
+    
+    for i in range(len(neighborhood)):
+        tempdist = math.dist([tree.nodes[currentNode]['x'], tree.nodes[currentNode]['y']], [tree.nodes[neighborhood[i]]['x'], tree.nodes[neighborhood[i]]['y']])
+        temp_path_to_start = tempdist + tree.nodes[currentNode]['path_to_start']
+
+        if temp_path_to_start < tree.nodes[neighborhood[i]]['path_to_start']:
+            #print("current parent: ", tree.nodes[neighborhood[i]]['parent'])
+            tree.nodes[neighborhood[i]]['parent'] = currentNode
+            tree.nodes[neighborhood[i]]['path_to_start'] = temp_path_to_start
 
 
 # -- This is the algroithm, use it to search for a motion plan
@@ -184,6 +194,7 @@ def rrt_algorithm(img, start, end, tree):
     notAtRoot = True
     path = []
     bestNeighbor = 0
+    neighborhood = []
 
     # Generate new nodes until one is in the goalzone
     while notAtGoal:
@@ -244,6 +255,9 @@ def rrt_algorithm(img, start, end, tree):
         tree.nodes[newNodeID]['path_to_start'] = tree.nodes[bestNeighbor]['path_to_start'] + math.dist([tree.nodes[bestNeighbor]['x'], tree.nodes[bestNeighbor]['y']], [int(newNodeCoords[0]), int(newNodeCoords[1])])
         #tree.add_edge(closestNode, newNodeID)
 
+        # Check if this new node makes paths shorter for it's neighbors
+        neighborhoodAdjustment(tree, newNodeID, neighborhood)
+
         # Check if newest node is in goal zone
         if between(goalzone_x, goalzone_y,  [tree.nodes[newNodeID]['x'],tree.nodes[newNodeID]['y']] ):
             notAtGoal = False
@@ -276,7 +290,7 @@ if __name__ == "__main__":
     stepSize = 15
 
     # -- Define neighborhood Length
-    neighbors = 30
+    neighbors = 50
 
     # -- Run algorithm
     tree, goalNode = rrt_algorithm(img, start, end, tree)
