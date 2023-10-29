@@ -17,9 +17,9 @@ COLOR_WHITE = (255, 255, 255)
 COLOR_BLUE = (255, 0, 0)
 
 # -- This method generates a random sample in the space
-def generateSample():
-    sample_x = rd.randrange(0, 400)
-    sample_y = rd.randrange(0, 400)
+def generateSample(height, width):
+    sample_x = rd.randrange(0, height)
+    sample_y = rd.randrange(0, width)
 
     #print([sample_x, sample_y])
     return [sample_x, sample_y]
@@ -27,7 +27,7 @@ def generateSample():
 # -- This method finds which existing node is the closest node to the generated sample
 def findClosest(graph, sample):
     
-    shortestDist = 1000
+    shortestDist = 1000000
     closestNode = 0
 
     for node in graph.nodes:
@@ -189,13 +189,13 @@ def rrt_algorithm(img, start, end, tree):
     while notAtGoal:
         
         # Generate a sample
-        sample = generateSample()
+        sample = generateSample(imgHeight, imgWidth)
         #img[sample[0], sample[1]] = [0, 0, 255]
 
         # Find the closest node to the sample
         closestNode = findClosest(tree, sample)
         if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
-            sample = generateSample()
+            sample = generateSample(imgHeight, imgWidth)
 
         # Generate a new node
         newNodeID = len(tree) + 1
@@ -220,16 +220,16 @@ def rrt_algorithm(img, start, end, tree):
                     validNode = True
 
                 else: 
-                    sample = generateSample()
+                    sample = generateSample(imgHeight, imgWidth)
                     if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
-                        sample = generateSample() 
+                        sample = generateSample(imgHeight, imgWidth) 
             
              
              
             else:
-                sample = generateSample()
+                sample = generateSample(imgHeight, imgWidth)
                 if tree.nodes[closestNode]['x'] == sample[0] and tree.nodes[closestNode]['y'] == sample[1]:
-                    sample = generateSample()
+                    sample = generateSample(imgHeight, imgWidth)
 
 
         # Add new node to graph
@@ -267,17 +267,20 @@ def rrt_algorithm(img, start, end, tree):
 
 if __name__ == '__main__':
     # -- set input parameters
-    filename = 'maze1.png'
+    filename = 'maze5.png'
     stepSize = 15 # Define step size
 
     # -- import an image and convert it to a binary image
-    img = cv2.imread('maze1.png')
+    img = cv2.imread('maze5.png')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
+    imgHeight, imgWidth, channels = img.shape
+
     # -- initialize the start and end points
     start = [60, 10]
-    end = [200, 350]
+    #end = [200, 350]
+    end = [980, 980]
 
     # -- initialize the tree
     tree = nx.Graph()
