@@ -187,18 +187,19 @@ def rrt_algorithm(img, start, end, tree):
     img[start[0], start[1]] = [0,0,255]
 
     # Inflate goal zone
-    goalzone_x = [(end[0] - 10), (end[0] + 10)]
-    goalzone_y = [(end[1] - 10), (end[1] + 10)]
+    inflateVal = 25
+    goalzone_x = [(end[0] - inflateVal), (end[0] + inflateVal)]
+    goalzone_y = [(end[1] - inflateVal), (end[1] + inflateVal)]
 
     #Draw the goal zone
-    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
-    cv2.line(img, ((end[0] - 10), (end[1] - 10)), ((end[0] + 10), (end[1] - 10)), (255, 0, 0), 1)
-    cv2.line(img, ((end[0] - 10), (end[1] + 10)), ((end[0] - 10), (end[1] - 10)), (255, 0, 0), 1)
-    cv2.line(img, ((end[0] + 10), (end[1] - 10)), ((end[0] + 10), (end[1] + 10)), (255, 0, 0), 1)
+    #cv2.line(img, ((end[0] - inflateVal), (end[1] + inflateVal)), ((end[0] + inflateVal), (end[1] + inflateVal)), (255, 0, 0), 1)
+    #cv2.line(img, ((end[0] - inflateVal), (end[1] - inflateVal)), ((end[0] + inflateVal), (end[1] - inflateVal)), (255, 0, 0), 1)
+    #cv2.line(img, ((end[0] - inflateVal), (end[1] + inflateVal)), ((end[0] - inflateVal), (end[1] - inflateVal)), (255, 0, 0), 1)
+    #cv2.line(img, ((end[0] + inflateVal), (end[1] - inflateVal)), ((end[0] + inflateVal), (end[1] + inflateVal)), (255, 0, 0), 1)
 
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    #cv2.imshow('My Image',img)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
 
     # Initizalize some variables we will be using
     notAtGoal = True
@@ -283,12 +284,27 @@ def rrt_algorithm(img, start, end, tree):
 
     return tree, goalNode
 
+def profileEnd(start, path):
+    end = time.time()
+    total = end - start
+    with open(path, 'a') as f:
+        f.write('\n')
+        f.write(str(total))
 
+def erode_image(map_array, filter_size = 9):
+    """ Erodes the image to reduce the chances of robot colliding with the wall
+    each pixel is 0.05 meter. The robot is 30 cm wide, that is 0.3 m. Half is
+    0.15 m. If we increase the walls by 20 cm on either side, the kernel should
+    be 40 cm wide. 0.4 / 0.05 = 8
+    """
+    kernel = np.ones((filter_size,filter_size), np.uint8)
+    eroded_img = cv2.erode(map_array, kernel, iterations = 1)
+    return eroded_img
 
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('maze5.png')
+    img = cv2.imread('map_edit_sequence_1.png')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
@@ -296,9 +312,10 @@ if __name__ == "__main__":
                                                                
 
     # -- initialize the start and end points
-    start = [60, 10]
-    end = [980, 980]
+    start = [300, 190]
+    #end = [980, 980]
     #end = [200, 350]
+    end = [280, 300]
 
     # -- initialize the tree
     tree = nx.Graph()
@@ -310,7 +327,11 @@ if __name__ == "__main__":
     neighbors = 50
 
     # -- Run algorithm
-    tree, goalNode = rrt_algorithm(img, start, end, tree)
+    start_timer = time.time()
+    map_data = erode_image(img)
+    tree, goalNode = rrt_algorithm(map_data, start, end, tree)
+    profileEnd(start_timer, "RRT_profile.txt")
+
 
     # -- Draw graph
     for i in range(len(tree.nodes)):
@@ -348,6 +369,11 @@ if __name__ == "__main__":
         else:
             notRoot = False
 
+
+    cv2.imwrite("RRT_map_sequence_eroded_1.png", img)
+
     cv2.imshow('My Image',img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+    

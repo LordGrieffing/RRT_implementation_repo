@@ -271,7 +271,7 @@ if __name__ == '__main__':
     stepSize = 15 # Define step size
 
     # -- import an image and convert it to a binary image
-    img = cv2.imread('maze5.png')
+    img = cv2.imread('BentSpear_maze.png')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
@@ -280,7 +280,7 @@ if __name__ == '__main__':
     # -- initialize the start and end points
     start = [60, 10]
     #end = [200, 350]
-    end = [980, 980]
+    end = [485, 485]
 
     # -- initialize the tree
     tree = nx.Graph()
