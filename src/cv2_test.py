@@ -4,11 +4,11 @@ import cv2
 import numpy as np
 
 # -- import an image and convert it to a binary image
-img = cv2.imread('map_edit_sequence_1.png')
+img = cv2.imread('map_sequence_2.png')
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 img[420, 270] = [0, 0, 255]
-end = [280, 300]
+end = [285, 300]
 inflateVal = 25
 
 
@@ -40,6 +40,7 @@ cv2.destroyAllWindows()
 
 
 # map_edit_sequence_1.png start = [300, 190]
+# map_sequence_5.png end = [350, 250]
 # map_sequence_4.png end = [320, 250]
 # map_sequence_3.png end = [280, 240]
 # map_sequence_2.png end = [280, 300]

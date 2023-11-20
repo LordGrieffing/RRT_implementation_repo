@@ -171,58 +171,24 @@ def profileEnd(start, path):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     img = cv2.imread('map_sequence_5.png')
-    start = time.time()
+
+    '''
+    for i in range(100):
+        #start = time.time()
+        map_data = erode_image(img)
+        map_binary = convert_to_binary(map_data)
+
+        skeleton = data_skeleton(map_binary)
+        #cv2.imshow('My Image', skeleton)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
+
+        graph = run_skeleton_input(skeleton)
+        #profileEnd(start, "Skeleton_profile_data/Skeleton_profile_sequence5_n100.txt")
+
+    '''
     map_data = erode_image(img)
     map_binary = convert_to_binary(map_data)
 
@@ -232,7 +198,84 @@ if __name__ == "__main__":
     #cv2.destroyAllWindows()
 
     graph = run_skeleton_input(skeleton)
-    profileEnd(start, "skeleton_profile.txt")
 
-    print(graph)
-    cv2.imwrite("skeleton_map_sequence__eroded_5.png", skeleton)
+
+    # -- print the graph
+    # -- Display graph
+    nodeList = list(graph.nodes)
+    edgeList = list(graph.edges)
+
+    # -- add nodes
+    for j in range(len(nodeList)):
+        nodeCoords = (graph.nodes[nodeList[j]]['pts'][0][1], graph.nodes[nodeList[j]]['pts'][0][0])
+        cv2.circle(img, nodeCoords, 4, (255, 0, 0), -1)
+
+    for j in range(len(edgeList)):
+                
+        currentEdge = edgeList[j]
+        cv2.line(img, (graph.nodes[currentEdge[0]]['pts'][0][1], graph.nodes[currentEdge[0]]['pts'][0][0]), (graph.nodes[currentEdge[1]]['pts'][0][1], graph.nodes[currentEdge[1]]['pts'][0][0]), (0, 0, 255), 1)
+
+    cv2.imshow('My Image', img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    #cv2.imwrite("skeleton_map_sequence__eroded_1.png", skeleton)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

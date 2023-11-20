@@ -304,7 +304,7 @@ def erode_image(map_array, filter_size = 9):
 
 if __name__ == "__main__":
     # -- import an image and convert it to a binary image
-    img = cv2.imread('map_edit_sequence_1.png')
+    img = cv2.imread('map_sequence_2.png')
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
 
@@ -315,7 +315,7 @@ if __name__ == "__main__":
     start = [300, 190]
     #end = [980, 980]
     #end = [200, 350]
-    end = [280, 300]
+    end = [285, 300]
 
     # -- initialize the tree
     tree = nx.Graph()
@@ -327,10 +327,12 @@ if __name__ == "__main__":
     neighbors = 50
 
     # -- Run algorithm
-    #start_timer = time.time()
-    map_data = erode_image(img)
-    tree, goalNode = rrt_algorithm(map_data, start, end, tree)
-    #profileEnd(start_timer, "RRT_profile.txt")
+    for i in range(100):
+        tree = nx.Graph()
+        start_timer = time.time()
+        map_data = erode_image(img)
+        tree, goalNode = rrt_algorithm(map_data, start, end, tree)
+        profileEnd(start_timer, "RRT_profile_data/RRT_profile_sequence2_n100.txt")
 
 
     # -- Draw graph
@@ -370,7 +372,7 @@ if __name__ == "__main__":
             notRoot = False
 
 
-    cv2.imwrite("RRT_lifetime_example_1.png", img)
+    cv2.imwrite("RRT_map_sequence_eroded_2.png", img)
 
     cv2.imshow('My Image',img)
     cv2.waitKey(0)

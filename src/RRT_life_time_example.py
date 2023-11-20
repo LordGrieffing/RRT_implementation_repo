@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-# -- implement RRT algorithm on a image
-
+# -- imports
 import cv2
 import numpy as np
 import networkx as nx
@@ -9,6 +8,23 @@ import random as rd
 import math
 from scipy.optimize import fsolve
 import time
+
+
+# This method cuts down the tree to the best path
+def pruneTree(tree, goalNode, bestpath):
+    
+    prunedTree = nx.Graph()
+    for i in range(len(bestpath)):
+        currentPruneNode = len(bestpath) - i
+        prunedTree.add_node(currentPruneNode)
+        prunedTree.nodes[currentPruneNode]['x'] = tree.nodes[bestpath[i]]['x']
+        prunedTree.nodes[currentPruneNode]['y'] = tree.nodes[bestpath[i]]['y']
+        prunedTree.nodes[currentPruneNode]['parent'] = tree.nodes[bestpath[i]]['parent']
+        prunedTree.nodes[currentPruneNode]['path_to_start'] = tree.nodes[bestpath[i]]['path_to_start'] 
+    
+    return prunedTree
+
+
 
 
 # -- This method generates a random sample in the space
@@ -178,14 +194,6 @@ def neighborhoodAdjustment(tree, currentNode, neighborhood):
 # -- This is the algroithm, use it to search for a motion plan
 def rrt_algorithm(img, start, end, tree):
 
-    # Initialize start
-    tree.add_node(1)
-    tree.nodes[1]['x'] = start[0]
-    tree.nodes[1]['y'] = start[1]
-    tree.nodes[1]['parent'] = 0
-    tree.nodes[1]['path_to_start'] = 0
-    img[start[0], start[1]] = [0,0,255]
-
     # Inflate goal zone
     inflateVal = 25
     goalzone_x = [(end[0] - inflateVal), (end[0] + inflateVal)]
@@ -236,11 +244,14 @@ def rrt_algorithm(img, start, end, tree):
                 # Initialize neighborhood
                 neighborhood = []
 
+                # Intialize list of nodes
+                listNodes = list(tree.nodes)
                 # Build the node's neighborhood
-                for i in range(len(tree.nodes)):
-                    tempDistance = math.dist([tree.nodes[i + 1]['x'], tree.nodes[i + 1]['y']], [int(newNodeCoords[0]), int(newNodeCoords[1])])
+                for i in range(len(listNodes)):
+                    tempDistance = math.dist([tree.nodes[listNodes[i]]['x'], tree.nodes[listNodes[i]]['y']], [int(newNodeCoords[0]), int(newNodeCoords[1])])
                     if tempDistance <= neighbors:
                         neighborhood.append(i + 1)
+
 
                 # Check which neighbor gives the shortest path to the start
                 bestNeighbor, lineValid = shortestNeighbor(newNodeCoords, neighborhood, tree, img)
@@ -302,78 +313,183 @@ def erode_image(map_array, filter_size = 9):
     return eroded_img
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
-    # -- import an image and convert it to a binary image
-    img = cv2.imread('map_edit_sequence_1.png')
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    ret, thresh = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    
+    # read all maps
+    img1 = cv2.imread('map_edit_sequence_1.png')
+    img2 = cv2.imread('map_sequence_2.png')
+    img3 = cv2.imread('map_sequence_3.png')
+    img4 = cv2.imread('map_sequence_4.png')
+    img5 = cv2.imread('map_sequence_5.png')
+    
+    map_set = [img1, img2, img3, img4, img5]
 
-    imgHeight, imgWidth, channels = img.shape
-                                                               
+    imgHeight, imgWidth, channels = img1.shape
 
-    # -- initialize the start and end points
-    start = [300, 190]
-    #end = [980, 980]
-    #end = [200, 350]
-    end = [280, 300]
-
-    # -- initialize the tree
+    # Intialize Tree
     tree = nx.Graph()
 
     # -- Define step size
     stepSize = 15
 
     # -- Define neighborhood Length
-    neighbors = 50
+    neighbors = 20
 
-    # -- Run algorithm
-    #start_timer = time.time()
-    map_data = erode_image(img)
-    tree, goalNode = rrt_algorithm(map_data, start, end, tree)
-    #profileEnd(start_timer, "RRT_profile.txt")
+    #first start position
+    start = [300, 190]
 
+    #set up end positions to simulate frontier
+    end1 = [230, 300]
+    end2 = [280, 300]
+    end3 = [280, 240]
+    end4 = [320, 250]
+    end5 = [350, 250]
 
-    # -- Draw graph
-    for i in range(len(tree.nodes)):
-        node = i + 1
-        # Draw node
-        img[tree.nodes[node]['x'], tree.nodes[node]['y']] = [0, 0, 255]
-
-        # Draw line
-        if tree.nodes[node]['parent'] == 0:
-            pass
-        else:
-            parent = tree.nodes[node]['parent']
-            cv2.line(img, (tree.nodes[node]['y'], tree.nodes[node]['x']), (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (255, 0, 0), 1)
-
-    #cv2.imshow('My Image',img)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-
-    # Attempt to display best path
-    notRoot = True
-    bestpath = []
-    bestpath.append(goalNode)
-    current_node = goalNode
-
-    while notRoot:
-        img[tree.nodes[current_node]['x'], tree.nodes[current_node]['y']] = [0, 0, 255]
-        #img[tree.nodes[current_node]['y'], tree.nodes[current_node]['x']] = [0, 0, 255]
-
-        parent = tree.nodes[current_node]['parent']
-
-        if parent != 0:
-            cv2.line(img, (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']), (0, 0, 255), 5)
-            current_node = parent
-            bestpath.append(parent)
-        else:
-            notRoot = False
+    end_set = [end1, end2, end3, end4, end5]
 
 
-    cv2.imwrite("RRT_lifetime_example_1.png", img)
+    # Initialize start
+    tree.add_node(1)
+    tree.nodes[1]['x'] = start[0]
+    tree.nodes[1]['y'] = start[1]
+    tree.nodes[1]['parent'] = 0
+    tree.nodes[1]['path_to_start'] = 0
 
-    cv2.imshow('My Image',img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    parent_prime = 0
+    # Begin running the algorithms
+    for i in range(5):
 
-    
+        # Initialize start
+        tree.add_node(1)
+        tree.nodes[1]['x'] = start[0]
+        tree.nodes[1]['y'] = start[1]
+        tree.nodes[1]['parent'] = 0
+        tree.nodes[1]['path_to_start'] = 0
+
+        # Intialize start and end
+        end = end_set[i]
+        img = map_set[i]
+
+        # Run Algorithm
+        map_data = erode_image(img)
+        tree, goalNode = rrt_algorithm(map_data, start, end, tree)
+
+        notRoot = True
+        bestpath = []
+        bestpath.append(goalNode)
+        current_node = goalNode
+
+
+        while notRoot:
+            img[tree.nodes[current_node]['x'], tree.nodes[current_node]['y']] = [0, 0, 255]
+            #img[tree.nodes[current_node]['y'], tree.nodes[current_node]['x']] = [0, 0, 255]
+
+            parent = tree.nodes[current_node]['parent']
+
+            if parent != 0:
+                cv2.line(img, (tree.nodes[parent]['y'], tree.nodes[parent]['x']), (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']), (0, 0, 255), 3)
+                cv2.circle(img, (tree.nodes[current_node]['y'], tree.nodes[current_node]['x']), 3, (255, 0, 0), -1)
+                print(current_node)
+                current_node = parent
+                bestpath.append(parent)
+            else:
+                notRoot = False
+
+        cv2.circle(img, (start[1], start[0]), 3, (255, 0, 0), -1)
+        # Set new Start
+        start = [tree.nodes[goalNode]['x'], tree.nodes[goalNode]['y']]
+
+
+        img[start[0], start[1]] = [255, 0, 0]
+        num_string = str(i+1)
+        cv2.imwrite("RRT_lifetime_graphs/RRT_lifetime_map%s.png"%num_string, img)
+
+
+        # Set new Start
+        start = [tree.nodes[goalNode]['x'], tree.nodes[goalNode]['y']]
+        #parent_prime = tree.nodes[goalNode]['parent']
+
+
+        # Save pruned tree
+        #tree = pruneTree(tree, goalNode, bestpath)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
